@@ -1,0 +1,44 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id        Int      @id @default(autoincrement())
+  userId    Int      // This will be the foreign key
+  name      String?  // Optional field for nullable
+  address   String?  // Optional field for nullable, using 'String' instead of 'Text' as Prisma does not differentiate
+  gender    String?  // Optional field for nullable
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Foreign key relation: assumes a User model is already defined in your schema
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("users_profile") // Maps to the 'users_profile' table in the database
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  mobile_no    String        @unique
+  password     String?       // Optional field for nullable
+  otp          String?       // Optional field for nullable
+  otp_expires_at DateTime?   // Optional field for nullable
+  rememberToken String?      @map("remember_token") @db.VarChar(100) // Optional field for nullable
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  profiles     UserProfile[] // Relation to UserProfile
+
+  @@map("users") // Maps to the 'users' table in the database
+}
+
+
+
+
+
+
