@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, UseGuards, Req, Put, Res } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { RegisterAndGenerateOtpDto } from './dto/RegisterUserDto';
+import { CreateUserProfileDto } from './dto/CreateProfileDto';
+import { LoginUserDto } from './dto/LoginUserDto';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { Request, Response } from 'express';
 
@@ -13,62 +15,26 @@ export class UsersController {
     return this.usersService.registerAndGenerateOtp(createUserDto);
   }
 
-
-  // @Post('login')
-  // loginUser(@Body() createUserDto: LoginUserDto) {
-  //   return this.usersService.loginUser(createUserDto);
-  // }  
+  @Post('login')
+  loginUser(@Body() createUserDto: LoginUserDto) {
+    return this.usersService.login(createUserDto);
+  }  
  
-  // @Post('forgot_password')
-  // forgetPassword(@Body() forgotPasswordDTO: ForgetPassword) {
-  //   return this.usersService.forgetPassword(forgotPasswordDTO);
-  // }  
- 
-  // @Post('verify-otp')
-  // async verifyOTP(@Body() body: VerifyOtpDTO) {
-  //     const { email, otp } = body;
-  //     return await this.usersService.verifyOTP(email, otp);
-  // }
-  // @Post('verify-login-otp')
-  // async verifyLoginOTP(@Body() body: VerifyOtpDTO) {
-  //     const { email, otp } = body;
-  //     return await this.usersService.verifyLoginOTP(email, otp);
-  // }
-
-  // @Post('resend_otp')
-  // async resendOTP(@Body() body: ResendOTP) {
-  //     return await this.usersService.resendOTP(body.email);
-  // }
-
-  // @Post('update_password')
-  // async updatePassword(@Body() body: UpdatePasswordDTO) {
-  //     return await this.usersService.changePassword(body);
-  // }
 
 
-  
-  // @Post('register')
-  // @UseGuards(AuthGuard)
-  // async profileAdd(
-  //   @Body() profileData : ProfileAddDto, @Req() req : any
-  // ){
-  //     const {user_id} = req.auth     
-  //     return await this.usersService.registerAndGenerateOtp(profileData, user_id);
-  // }
-
-  // @Get('get_profile_details')
-  // @UseGuards(AuthGuard)
-  // async getProfileDetails(@Req() req : any) {   
-  //   const {user_id} = req.auth 
-  //     return await this.usersService.getProfileDetails(user_id);
-  // }
-  
-  // @Put('update_profile')
-  // @UseGuards(AuthGuard)
-  // async updateProfile(@Body() updateProfileDto : UpdateProfileDto,  @Req() req : any) {
-  //     const {user_id} = req.auth     
-  //     return await this.usersService.updateProfile(updateProfileDto, user_id);
-  // }
+  @Get('get_users')
+  @UseGuards(AuthGuard)
+  async getProfileDetails(@Req() req: any) {
+    console.log(req.auth);
+    const {user_id} = req.auth
+    return this.usersService.getUserDetails( user_id);
+  }
+  @Post('create_profile')
+  @UseGuards(AuthGuard)
+  async updateProfile(@Body() CreateUserProfileDto : CreateUserProfileDto,  @Req() req : any) {
+      const {user_id} = req.auth     
+      return await this.usersService.createProfile(CreateUserProfileDto, user_id);
+  }
 
   // @Get('get_subscriptions')
   // async getSubscriptions(){

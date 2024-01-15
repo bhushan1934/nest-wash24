@@ -8,28 +8,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model UserProfile {
-  id        Int      @id @default(autoincrement())
-  userId    Int      // This will be the foreign key
-  name      String?  // Optional field for nullable
-  address   String?  // Optional field for nullable, using 'String' instead of 'Text' as Prisma does not differentiate
-  gender    String?  // Optional field for nullable
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Foreign key relation: assumes a User model is already defined in your schema
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("users_profile") // Maps to the 'users_profile' table in the database
-}
-
 model User {
   id           Int           @id @default(autoincrement())
   mobile_no    String        @unique
-  password     String?       // Optional field for nullable
   otp          String?       // Optional field for nullable
   otp_expires_at DateTime?   // Optional field for nullable
-  rememberToken String?      @map("remember_token") @db.VarChar(100) // Optional field for nullable
+  rememberToken String?      @map("remember_token") @db.VarChar(600) // Optional field for nullable
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
   profiles     UserProfile[] // Relation to UserProfile
@@ -39,6 +23,25 @@ model User {
 
 
 
+model UserProfile {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique()
+  name       String  
+  email      String   @unique()
+  address    String  
+  pincode    Int
+  gender     String  
+  flatNo     String   @map("flat_no")
+  societyName String  @map("society_name")
+  area       String   @db.VarChar(200)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relation to User model
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+}
 
 
 
