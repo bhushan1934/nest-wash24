@@ -35,7 +35,11 @@ export class UsersController {
       const {user_id} = req.auth     
       return await this.usersService.createProfile(CreateUserProfileDto, user_id);
   }
-
+  @Get('get_dashboard')
+  @UseGuards(AuthGuard)
+  async getDashboard(@Req() req: any) {
+    return this.usersService.getDashboard( );
+  }
   // @Get('get_subscriptions')
   // async getSubscriptions(){
   //   return await this.usersService.getAllSubscriptions();

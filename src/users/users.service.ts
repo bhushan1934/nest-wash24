@@ -66,7 +66,7 @@ export class UsersService {
     // Generate a 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     const otp_expires_at = new Date();
-    otp_expires_at.setMinutes(otp_expires_at.getMinutes() + 10);
+    otp_expires_at.setMinutes(otp_expires_at.getMinutes() + 1000);
 
     // Update user's OTP and its expiration time
     user = await this.prisma.user.update({
@@ -90,7 +90,7 @@ export class UsersService {
   async login(loginUserDto: LoginUserDto): Promise<{ accessToken: string; user: any }> {
     const { mobile_no, otp } = loginUserDto;
 
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: {
         mobile_no: mobile_no, // Use the correct property name
         otp: otp,
@@ -152,7 +152,7 @@ if(!check){
   
   };
 }else{
-  await this.prisma.userProfile.update({
+  const updated = await this.prisma.userProfile.update({
     data:{
       name: createUserProfileDto.name,
       address: createUserProfileDto.address,
@@ -168,7 +168,12 @@ if(!check){
   
 
   }) 
-
+  return {
+    success: true,
+    message: "profile updated succssfully",
+    data: updated,
+  
+  };
   
 }
 
@@ -188,6 +193,9 @@ async getUserDetails(userId: number) {
   });
 }
 
+async getDashboard() {
+  return this.prisma.dashboard.findMany();
+}
 
   
 }
