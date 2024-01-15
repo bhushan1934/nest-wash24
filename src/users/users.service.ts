@@ -179,11 +179,15 @@ if(!check){
 
 
 
-async getUserDetails(user_id: number) {
-  return this.prisma.user.findMany({
-    where: { id: user_id }
+async getUserDetails(userId: number) {
+  return this.prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      profiles: true, // Assuming 'profiles' is the relation field in the User model
+    },
   });
 }
+
 
   
 }
