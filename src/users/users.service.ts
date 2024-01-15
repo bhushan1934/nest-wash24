@@ -78,16 +78,20 @@ export class UsersService {
     });
 
     // TODO: Implement actual OTP sending logic here
-
     return {
-      message: 'OTP sent successfully',
+      success: true,
+      statusCode: HttpStatus.CREATED,
+      message: "registered succssfully",
       data: {
         user_id: user.id,
         otp,
       },
+    
     };
+
+   
   }
-  async login(loginUserDto: LoginUserDto): Promise<{ accessToken: string; user: any }> {
+  async login(loginUserDto: LoginUserDto): Promise< any > {
     const { mobile_no, otp } = loginUserDto;
 
     const user = await this.prisma.user.findFirst({
@@ -119,8 +123,13 @@ export class UsersService {
       mobile_no: user.mobile_no, // Use correct property name
       // Include other user fields as needed
     };
-
-    return { accessToken, user: userData };
+    return {
+      success: true,
+      statusCode: HttpStatus.CREATED,
+      message: "login succssfully",
+      data:{ userData, accessToken}
+    
+    };
   }
 
 async createProfile(createUserProfileDto:CreateUserProfileDto, user_id:number){
