@@ -11,6 +11,7 @@ import { CreateUserProfileDto } from './dto/CreateProfileDto';
 import { PrismaService } from 'src/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { User, UserProfile } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as nodeMailer from 'nodemailer';
 import { JwtService } from '@nestjs/jwt';
 import { ExceptionFilter } from '@nestjs/common';
@@ -24,16 +25,21 @@ export class UsersService {
 
 
 
-  async sendEmail(user: UserProfile, subject: string, message: string, otp: number) {
+  async sendEmail(user: UserProfile, subject: string, message: string) {
     const transporter = nodeMailer.createTransport({
       host: process.env.EMAIL_HOST,
-      port: Number(process.env.EMAIL_PORT) || 587,
-      // secure: true, // Convert to boolean if needed
+      port: 587,
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      tls: {
+        rejectUnauthorized: false, // Note: Set to true in production
+      },
     });
+    
+    
 
     const emailOptions = {
       from: process.env.FROM_EMAIL,
@@ -51,94 +57,96 @@ export class UsersService {
   async registerAndGenerateOtp(dto: RegisterAndGenerateOtpDto): Promise<any> {
     const { mobile_no } = dto;
 
-    // Check if the user already exists
-    let user = await this.prisma.user.findUnique({
-      where: { mobile_no },
-    });
+    try {
+      let user = await this.prisma.user.findUnique({ where: { mobile_no } });
 
-    if (!user) {
-      // Register the user if they don't exist
-      user = await this.prisma.user.create({
-        data: { mobile_no },
+      if (!user) {
+        user = await this.prisma.user.create({ data: { mobile_no } });
+      }
+
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
+      const otp_expires_at = new Date();
+      otp_expires_at.setMinutes(otp_expires_at.getMinutes() + 1000);
+
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { otp, otp_expires_at },
       });
+
+      // TODO: Implement actual OTP sending logic here
+
+      return {
+        success: true,
+        statusCode: HttpStatus.CREATED,
+        message: "Registered successfully",
+        data: { user_id: user.id, otp },
+      };
+    } catch (error) {
+      throw new HttpException('Error registering user', HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    // Generate a 4-digit OTP
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    const otp_expires_at = new Date();
-    otp_expires_at.setMinutes(otp_expires_at.getMinutes() + 1000);
-
-    // Update user's OTP and its expiration time
-    user = await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        otp,
-        otp_expires_at,
-      },
-    });
-
-    // TODO: Implement actual OTP sending logic here
-    return {
-      success: true,
-      statusCode: HttpStatus.CREATED,
-      message: "registered succssfully",
-      data: {
-        user_id: user.id,
-        otp,
-      },
-    
-    };
-
-   
   }
-  async login(loginUserDto: LoginUserDto): Promise< any > {
-    const { mobile_no, otp } = loginUserDto;
 
+
+
+  async login(loginUserDto: LoginUserDto): Promise<any> {
+    const { mobile_no, otp } = loginUserDto;
+  
     const user = await this.prisma.user.findFirst({
       where: {
-        mobile_no: mobile_no, // Use the correct property name
+        mobile_no: mobile_no,
         otp: otp,
-        otp_expires_at: { gt: new Date() }, // Adjusted for Prisma syntax
+        otp_expires_at: { gt: new Date() },
       },
     });
-
-    // if (!user) {
-    //   return Invalid OTP or it has expired ;
-    // }
-
+  
+    if (!user) {
+      throw new HttpException('Invalid OTP or it has expired', HttpStatus.BAD_REQUEST);
+    }
+  
     // Optional: Reset or nullify the OTP to prevent reuse
-    // user.otp = null;
-
-    const payload = { mobile_no: user.mobile_no, user_id: user.id }; // Use correct property name
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { otp: null }, // Reset OTP after successful login
+    });
+  
+    const payload = { mobile_no: user.mobile_no, user_id: user.id };
     const accessToken = this.jwtService.sign(payload);
+    
     await this.prisma.user.update({
       where: { id: user.id },
       data: { rememberToken: accessToken },
     });
     
-    
-    // Prepare user data to return
     const userData = {
       id: user.id,
-      mobile_no: user.mobile_no, // Use correct property name
-      // Include other user fields as needed
+      mobile_no: user.mobile_no,
     };
+  
     return {
       success: true,
-      statusCode: HttpStatus.CREATED,
-      message: "login succssfully",
-      data:{ userData, accessToken}
-    
+      statusCode: HttpStatus.OK, // Use OK for successful login
+      message: "Login successfully",
+      data: { userData, accessToken }
     };
   }
+  
+
+
+
+
+
 
 async createProfile(createUserProfileDto:CreateUserProfileDto, user_id:number){
+    try {
+      const existingProfile = await this.prisma.userProfile.findUnique({
+        where: { id: user_id }
+      });
 
-  const check =await this.prisma.userProfile.findUnique({
-    where:{userId:user_id}
-  })
-if(!check){
-  const newProfile = await this.prisma.userProfile.create({
+      if (existingProfile) {
+        throw new HttpException('Profile already exists', HttpStatus.BAD_REQUEST);
+      }
+
+  const profileData = await this.prisma.userProfile.create({
     data:{
       name: createUserProfileDto.name,
       email: createUserProfileDto.email,
@@ -153,57 +161,81 @@ if(!check){
     
     
   }) 
+  // Send welcome email after successful profile creation or update
+  // const subject = "Welcome to Our Service!";
+  // const message = "Your profile has been successfully created.";
+  // await this.sendEmail(profileData, subject, message,);
   return {
     success: true,
     statusCode: HttpStatus.CREATED,
-    message: "profile added succssfully",
-    data: newProfile,
-  
+    message: "Profile added successfully",
+    data: profileData,
   };
-}else{
-  const updated = await this.prisma.userProfile.update({
-    data:{
-      name: createUserProfileDto.name,
-      address: createUserProfileDto.address,
-      flatNo: createUserProfileDto.flatNo,
-      area: createUserProfileDto.area,
-      gender: createUserProfileDto.gender,
-      societyName:createUserProfileDto.societyName,
-    
-    },
-    where:{
-      userId:user_id
-    }
-  
 
-  }) 
-  return {
-    success: true,
-    message: "profile updated succssfully",
-    data: updated,
-  
-  };
-  
+} catch (error) {
+  // Log error for debugging
+  console.error(error);
+
+  // If error is not a HttpException, create a generic one
+  if (!(error instanceof HttpException)) {
+    throw new HttpException('Failed to create profile', HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  // Re-throw the error if it's already a HttpException
+  throw error;
 }
-
-
-  
 }
-
 
 
 
 async getUserDetails(userId: number) {
-  return this.prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      profiles: true, // Assuming 'profiles' is the relation field in the User model
-    },
-  });
+  // Validate userId
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new HttpException('Invalid user ID', HttpStatus.BAD_REQUEST);
+  }
+
+  try {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        profiles: true, // Assuming 'profiles' is the relation field in the User model
+      },
+    });
+
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    return {
+      success: true,
+      statusCode: HttpStatus.CREATED,
+      message: "Profile fetched successfully",
+      data: user,
+    };  } catch (error) {
+    // Log the error for debugging purposes
+    console.error(error);
+
+    // Throw a generic internal server error to the client
+    throw new HttpException('Failed to retrieve user details', HttpStatus.INTERNAL_SERVER_ERROR);
+  }
 }
 
+
 async getDashboard() {
-  return this.prisma.dashboard.findMany();
+  try {
+    const dashboardData = await this.prisma.dashboard.findMany();
+    return {
+      success: true,
+      statusCode: HttpStatus.CREATED,
+      message: "dashboard data fetched successfully",
+      data: dashboardData,
+    };   } catch (error) {
+    // Log the error for debugging purposes
+    console.error('Error retrieving dashboard data:', error);
+
+    // Throw a generic internal server error to the client
+    throw new HttpException('Failed to retrieve dashboard data', HttpStatus.INTERNAL_SERVER_ERROR);
+  }
 }
 
   

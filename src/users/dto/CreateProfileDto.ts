@@ -1,12 +1,11 @@
-import { IsString, IsInt, IsOptional, Length, IsEmail, IsNumber } from 'class-validator';
+import { IsString, IsInt, IsOptional, Length, IsEmail, IsNumber, Min, Max } from 'class-validator';
 
 export class CreateUserProfileDto {
-  
-  
-@IsEmail()
-email:string;
+  @IsEmail()
+  email: string;
 
   @IsString()
+  
   name: string;
 
   @IsString()
@@ -22,36 +21,10 @@ email:string;
   societyName: string;
 
   @IsString()
-  @Length(0, 200)
   area: string;
 
   @IsNumber()
+  @Min(100000) 
+  @Max(999999)
   pincode: number;
-}
-
-export class UpdateUserProfileDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  address?: string;
-
-  @IsOptional()
-  @IsString()
-  gender?: string;
-
-  @IsOptional()
-  @IsString()
-  flatNo?: string;
-
-  @IsOptional()
-  @IsString()
-  societyName?: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(0, 200)
-  area?: string;
 }

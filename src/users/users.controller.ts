@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, UseGuards, Req, Put, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, UsePipes, ValidationPipe, HttpStatus, UseGuards, Req, Put, Res } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { RegisterAndGenerateOtpDto } from './dto/RegisterUserDto';
 import { CreateUserProfileDto } from './dto/CreateProfileDto';
@@ -10,16 +10,18 @@ import { Request, Response } from 'express';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  
   @Post('user_registration')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   registerUser(@Body() createUserDto: RegisterAndGenerateOtpDto) {
     return this.usersService.registerAndGenerateOtp(createUserDto);
   }
-
+  
   @Post('login')
+  @UsePipes(new ValidationPipe())
   loginUser(@Body() createUserDto: LoginUserDto) {
     return this.usersService.login(createUserDto);
-  }  
- 
+  }
 
 
   @Get('get_users')

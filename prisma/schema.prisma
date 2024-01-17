@@ -25,7 +25,7 @@ model User {
 
 model UserProfile {
   id         Int      @id @default(autoincrement())
-  userId     Int      @unique()
+  userId     Int     @unique
   name       String  
   email      String   @unique()
   address    String  
