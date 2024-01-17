@@ -16,14 +16,21 @@ export class UsersController {
   registerUser(@Body() createUserDto: RegisterAndGenerateOtpDto) {
     return this.usersService.registerAndGenerateOtp(createUserDto);
   }
-  
+
   @Post('login')
   @UsePipes(new ValidationPipe())
   loginUser(@Body() createUserDto: LoginUserDto) {
     return this.usersService.login(createUserDto);
   }
+ 
 
-
+  @Post('logout')
+  @UseGuards(AuthGuard)
+  async logout(@Req() req: any) {
+    console.log(req.auth);
+    const {user_id} = req.auth
+    return this.usersService.logout( user_id);
+  }
   @Get('get_users')
   @UseGuards(AuthGuard)
   async getProfileDetails(@Req() req: any) {

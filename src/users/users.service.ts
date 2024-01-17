@@ -131,8 +131,30 @@ export class UsersService {
   }
   
 
+  async logout(user_id: number): Promise<any> {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { id: user_id } });
 
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
 
+      await this.prisma.user.update({
+        where: { id: user_id },
+        data: { rememberToken: null }, 
+      });
+
+      return {
+        success: true,
+        statusCode: HttpStatus.OK,
+        message: "Logout successful",
+        data: []
+      };
+    } catch (error) {
+      console.error('Error during logout:', error);
+      throw new HttpException('Error during logout', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 
 
 
