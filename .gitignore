@@ -5,6 +5,7 @@ Thumbs.db
 # Ignore environment-specific files
 .env
 .env.*
+!.env.example
 
 # Ignore dependencies and packages
 /node_modules
